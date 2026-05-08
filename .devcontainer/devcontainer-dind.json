@@ -1,0 +1,27 @@
+{
+    "name": "oci-img-diff-dev",
+    "build": {
+        "dockerfile": "../Dockerfile",
+        "context": ".."
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {
+            "version": "latest",
+            "moby": "true"
+        }
+    },
+    // Crucial: DinD needs privileged mode to run the inner daemon
+    "runArgs": ["--privileged"],
+    
+    // Override the production entrypoint so the container stays open
+    "overrideCommand": true,
+    
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-azuretools.vscode-docker"
+            ]
+        }
+    },
+    "remoteUser": "root"
+}

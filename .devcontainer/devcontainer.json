@@ -1,29 +1,32 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/docker-in-docker
 {
-	"name": "oci-img-diff",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/base:bullseye",
+    "name": "oci-img-diff-dood",
+    "build": {
+        "dockerfile": "../Dockerfile",
+        "context": ".."
+    },
+    "features": {
+        // Use the 'outside' feature to mount the host socket
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "version": "latest",
+            "installDockerBuildx": true
+        }
+    },
+    // This tells VS Code to ignore the ENTRYPOINT ["./entrypoint.sh"] 
+    // to stay inside the container and code.
+    "overrideCommand": true,
 
-	"features": {
-		"ghcr.io/devcontainers/features/docker-in-docker:2": {
-			"version": "${templateOption:dockerVersion}",
-			"enableNonRootDocker": "${templateOption:enableNonRootDocker}",
-			"moby": "${templateOption:moby}"
-		}
-	},
-"enableNonRootDocker": false,
-"moby": false
+    // Mount your host's Docker config so regctl can reuse your logins
+    "mounts": [
+        "source=${localEnv:HOME}/.docker/config.json,target=/root/.docker/config.json,type=bind,consistency=cached"
+    ],
 
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "docker --version",
-
-	// Configure tool-specific properties.
-	// "customizations": {},
-
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-azuretools.vscode-docker"
+            ]
+        }
+    },
+    // Running as root ensures having permission to access the mounted socket
+    "remoteUser": "root"
 }
