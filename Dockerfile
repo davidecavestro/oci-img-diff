@@ -1,4 +1,4 @@
-FROM node:lts-slim
+FROM node:lts-slim AS base
 
 RUN apt-get update && apt-get install -y \
     curl diffutils findutils jq python3 python3-pip \
@@ -10,8 +10,20 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 RUN npm install -g diff2html-cli
+RUN mkdir /output
+VOLUME [ "/o" ]
 WORKDIR /app
-COPY entrypoint.sh .
-RUN chmod +x entrypoint.sh
+COPY entrypoint.sh preprocess-diff.sh ./
+RUN chmod +x entrypoint.sh preprocess-diff.sh
 USER root
 ENTRYPOINT ["./entrypoint.sh"]
+
+
+FROM base AS dev
+RUN apt-get update && apt-get install -y \
+    procps less \
+    && rm -rf /var/lib/apt/lists/*
+
+
+# final stage
+FROM base

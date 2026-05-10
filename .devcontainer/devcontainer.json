@@ -2,6 +2,7 @@
     "name": "oci-img-diff-dood",
     "build": {
         "dockerfile": "../Dockerfile",
+        "target": "dev",
         "context": ".."
     },
     "features": {
@@ -16,14 +17,16 @@
     "overrideCommand": true,
 
     // Mount your host's Docker config so regctl can reuse your logins
-    "mounts": [
-        "source=${localEnv:HOME}/.docker/config.json,target=/root/.docker/config.json,type=bind,consistency=cached"
-    ],
+    // Note: This is commented out since Docker config was removed to fix credential issues
+    // "mounts": [
+    //     "source=${localEnv:HOME}/.docker/config.json,target=/root/.docker/config.json,type=bind,consistency=cached"
+    // ],
 
     "customizations": {
         "vscode": {
             "extensions": [
-                "ms-azuretools.vscode-docker"
+                "ms-azuretools.vscode-docker",
+                "rogalmic.bash-debug"
             ]
         }
     },

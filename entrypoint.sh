@@ -8,6 +8,7 @@ PATH_TO_DIFF="/"
 FORMAT="html"
 TO_STDOUT="false"
 REPORT_NAME="diff_report"
+OUT_DIR="/output"
 
 usage() {
     echo "Usage: docker run ... <image> [options]"
@@ -19,6 +20,7 @@ usage() {
     echo "Options:"
     echo "  -p, --path <path>        Specific path to diff (default: /)"
     echo "  -f, --format <fmt>       Output format: html, text, smart-html, smart-text (default: html)"
+    echo "  -o, --output-dir <dir>   Output directory (default: /output)"
     echo "  -s, --stdout             Print output to stdout as well"
     echo "  -h, --help               Show this help message"
     exit 1
@@ -43,6 +45,10 @@ while [ $# -gt 0 ]; do
       FORMAT="$2"
       shift 2
       ;;
+    --output-dir|-o)
+      OUT_DIR="$2"
+      shift 2
+      ;;
     --stdout|-s)
       TO_STDOUT="true"
       shift
@@ -63,6 +69,7 @@ if [ -z "$IMAGE1" ] || [ -z "$IMAGE2" ]; then
 fi
 
 if [[ "$FORMAT" =~ ^(html|text|smart-html|smart-text)$ ]]; then
+    echo "✅ Valid format: $FORMAT"
 else
     echo "❌ Error: $FORMAT is not a supported format"
     usage
@@ -114,11 +121,12 @@ if [ ! -d "$DIR1" ] || [ ! -d "$DIR2" ]; then
 fi
 
 # --- Output Logic ---
+mkdir -p "$OUT_DIR"
 case "$FORMAT" in
     "smart-text")
         echo "🔍 Running Difftastic (Structural Text mode)..."
-        difft --skip-unchanged --color always "$DIR1" "$DIR2" > "/output/${REPORT_NAME}.txt"
-        [ "$TO_STDOUT" == "true" ] && cat "/output/${REPORT_NAME}.txt"
+        difft --skip-unchanged --color always "$DIR1" "$DIR2" > "$OUT_DIR/${REPORT_NAME}.txt"
+        [ "$TO_STDOUT" == "true" ] && cat "$OUT_DIR/${REPORT_NAME}.txt"
         echo "✅ Textual report saved to ${REPORT_NAME}.txt"
         ;;
 
@@ -127,7 +135,7 @@ case "$FORMAT" in
         # Removed --full and used the standard pipe. 
         # ansi2html (pip version) creates a partial by default, 
         # or we can use the 'man' style or just let it wrap.
-        difft --skip-unchanged --color always "$DIR1" "$DIR2" | ansi2html > "/output/${REPORT_NAME}.html"
+        difft --skip-unchanged --color always "$DIR1" "$DIR2" | ansi2html > "$OUT_DIR/${REPORT_NAME}.html"
         
         [ "$TO_STDOUT" == "true" ] && difft --color always "$DIR1" "$DIR2"
         echo "✅ Structural HTML report saved to ${REPORT_NAME}.html"
@@ -136,7 +144,7 @@ case "$FORMAT" in
     "text")
         echo "🔍 Running Standard Diff (Text mode)..."
         # Generate standard unified diff
-        diff -Nru --no-dereference "$DIR1" "$DIR2" > "/output/${REPORT_NAME}.txt" || true
+        diff -Nru --no-dereference "$DIR1" "$DIR2" > "$OUT_DIR/${REPORT_NAME}.txt" || true
         echo "✅ Textual report saved to ${REPORT_NAME}.txt"
         ;;
 
@@ -147,12 +155,16 @@ case "$FORMAT" in
         
         if [ ! -s /tmp/combined.diff ]; then
             echo "🎉 No differences found!"
-            echo "<h1>No changes detected at /$REL_PATH</h1>" > "/output/${REPORT_NAME}.html"
+            echo "<h1>No changes detected at /$REL_PATH</h1>" > "$OUT_DIR/${REPORT_NAME}.html"
         else
+            # Preprocess diff to handle binary files properly
+            echo "📝 Preprocessing diff for binary file compatibility..."
+            ./preprocess-diff.sh /tmp/combined.diff /tmp/processed.diff
+            
             diff2html -i file -s side --summary open \
                 --title "Standard Diff: $IMAGE1 vs $IMAGE2" \
-                -f html -F "/output/${REPORT_NAME}.html" \
-                -- /tmp/combined.diff
+                -f html -F "$OUT_DIR/${REPORT_NAME}.html" \
+                -- /tmp/processed.diff
             [ "$TO_STDOUT" == "true" ] && cat /tmp/combined.diff
             echo "✅ HTML report saved to ${REPORT_NAME}.html"
         fi

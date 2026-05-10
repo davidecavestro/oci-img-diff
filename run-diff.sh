@@ -19,6 +19,7 @@ echo "🚀 Launching container..."
 # directly to the entrypoint.sh inside the container.
 docker run --rm \
   -e DFT_WIDTH=200 \
+  -v /tmp \
   -v "$HOME/.docker/config.json:/root/.docker/config.json:ro" \
   -v "$OUTPUT_DIR":/output \
   "$TOOL_IMAGE" "$@"
