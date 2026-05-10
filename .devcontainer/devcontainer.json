@@ -12,7 +12,7 @@
             "installDockerBuildx": true
         }
     },
-    // This tells VS Code to ignore the ENTRYPOINT ["./entrypoint.sh"] 
+    // This tells VS Code to ignore the ENTRYPOINT 
     // to stay inside the container and code.
     "overrideCommand": true,
 
@@ -26,7 +26,10 @@
         "vscode": {
             "extensions": [
                 "ms-azuretools.vscode-docker",
-                "rogalmic.bash-debug"
+                "rogalmic.bash-debug",
+                "ms-vscode.makefile-tools",
+                "bats-core.bats-core",
+                "github.vscode-github-actions"
             ]
         }
     },

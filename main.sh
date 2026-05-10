@@ -9,6 +9,8 @@ FORMAT="html"
 TO_STDOUT="false"
 REPORT_NAME="diff_report"
 OUT_DIR="/output"
+INFLATE_ARCHIVES="false"
+INFLATE_EXTENSIONS=".jar,.war,.ear,.zip,.tar,.tar.gz,.tgz,.tar.bz2,.tar.xz,.gz,.bz2,.xz,.deb,.rpm"
 
 usage() {
     echo "Usage: docker run ... <image> [options]"
@@ -22,6 +24,8 @@ usage() {
     echo "  -f, --format <fmt>       Output format: html, text, smart-html, smart-text (default: html)"
     echo "  -o, --output-dir <dir>   Output directory (default: /output)"
     echo "  -s, --stdout             Print output to stdout as well"
+    echo "      --inflate             Decompress archive files before comparison (default: disabled)"
+    echo "      --inflate-extensions <exts>  Comma-separated list of extensions to inflate (default: .jar,.war,.ear,.zip,.tar,.tar.gz,.tgz,.tar.bz2,.tar.xz,.gz,.bz2,.xz,.deb,.rpm)"
     echo "  -h, --help               Show this help message"
     exit 1
 }
@@ -53,6 +57,14 @@ while [ $# -gt 0 ]; do
       TO_STDOUT="true"
       shift
       ;;
+    --inflate)
+      INFLATE_ARCHIVES="true"
+      shift
+      ;;
+    --inflate-extensions)
+      INFLATE_EXTENSIONS="$2"
+      shift 2
+      ;;
     -h|--help)
       usage
       ;;
@@ -69,7 +81,7 @@ if [ -z "$IMAGE1" ] || [ -z "$IMAGE2" ]; then
 fi
 
 if [[ "$FORMAT" =~ ^(html|text|smart-html|smart-text)$ ]]; then
-    echo "✅ Valid format: $FORMAT"
+    echo "✅ Using format: $FORMAT"
 else
     echo "❌ Error: $FORMAT is not a supported format"
     usage
@@ -107,10 +119,69 @@ extract_oci_fs() {
     rm -rf "$dest/.temp" "$dest/export.tar"
 }
 
+# --- Archive Handlers ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/archive_handlers.sh"
+
+# --- Archive Inflation Function ---
+inflate_archives() {
+    local base_dir=$1
+    local extensions="$2"
+    
+    if [ "$INFLATE_ARCHIVES" != "true" ]; then
+        return 0
+    fi
+    
+    echo "📦 Inflating archive files..."
+    
+    # Initialize archive handlers
+    init_archive_handlers
+    
+    # Load plugin handlers if plugins directory exists
+    load_plugin_handlers "$(dirname "$0")/plugins"
+    
+    # Convert comma-separated extensions to array
+    IFS=',' read -ra EXT_ARRAY <<< "$extensions"
+    
+    # Find and inflate archives
+    find "$base_dir" -type f | while read -r file; do
+        local filename=$(basename "$file")
+        local dirname=$(dirname "$file")
+        
+        for ext in "${EXT_ARRAY[@]}"; do
+            if [[ "$filename" == *"$ext" ]]; then
+                local inflated_path="${file}_inflated"
+                
+                # Skip if already inflated
+                if [ -d "$inflated_path" ]; then
+                    continue
+                fi
+                
+                # Check if we have a handler for this extension
+                if has_archive_handler "$ext"; then
+                    echo "  📂 Inflating: $filename"
+                    mkdir -p "$inflated_path"
+                    
+                    # Execute the handler
+                    if ! execute_archive_handler "$ext" "$file" "$inflated_path" "$filename"; then
+                        echo "  ❌ Failed to inflate: $filename"
+                        rm -rf "$inflated_path"
+                    fi
+                fi
+                break
+            fi
+        done
+    done
+}
+
 # --- Main Execution ---
 mkdir -p /tmp/img1 /tmp/img2
 extract_oci_fs "$IMAGE1" "/tmp/img1"
 extract_oci_fs "$IMAGE2" "/tmp/img2"
+
+# Inflate archives if requested
+inflate_archives "/tmp/img1" "$INFLATE_EXTENSIONS"
+inflate_archives "/tmp/img2" "$INFLATE_EXTENSIONS"
 
 DIR1="/tmp/img1/$REL_PATH"
 DIR2="/tmp/img2/$REL_PATH"

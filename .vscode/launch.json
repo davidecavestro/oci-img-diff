@@ -7,9 +7,9 @@
         {
             "type": "bashdb",
             "request": "launch",
-            "name": "Bash-Debug (entrypoint.sh)",
+            "name": "Bash-Debug (main.sh)",
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/entrypoint.sh",
+            "program": "${workspaceFolder}/main.sh",
             "args": [
                 "--output-dir", "/workspaces/oci-img-diff/output",
                 "--left", "maven:3.9.11-eclipse-temurin-21-alpine",

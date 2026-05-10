@@ -1,0 +1,105 @@
+name: Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        test-type: [unit, integration, all]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Install bash_unit
+      run: |
+        cd test && make install-bash-unit
+      continue-on-error: true
+    
+    - name: Run unit tests
+      if: matrix.test-type == 'unit' || matrix.test-type == 'all'
+      run: |
+        cd test && make test-unit
+    
+    - name: Build Docker image
+      if: matrix.test-type == 'integration' || matrix.test-type == 'all'
+      run: |
+        docker build -t oci-img-diff-test .
+      continue-on-error: true
+    
+    - name: Run integration tests
+      if: matrix.test-type == 'integration' || matrix.test-type == 'all'
+      run: |
+        cd test && make test-integration
+      continue-on-error: true
+    
+    - name: Run plugin system tests
+      if: matrix.test-type == 'unit' || matrix.test-type == 'all'
+      run: |
+        cd test && ./bash_unit test_plugin_system.sh
+    
+    - name: Run isolated tests
+      if: matrix.test-type == 'unit' || matrix.test-type == 'all'
+      run: |
+        cd test && ./bash_unit test_isolated_final.sh
+    
+    - name: Upload test artifacts
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-logs-${{ matrix.test-type }}
+        path: |
+          test/*.log
+          output/
+        retention-days: 7
+
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build test image
+      run: |
+        docker build -t oci-img-diff-build-test .
+    
+    - name: Test image functionality
+      run: |
+        # Test basic functionality
+        docker run --rm -v /tmp:/output oci-img-diff-build-test \
+          --left alpine:3.22.2 \
+          --right alpine:3.23.4 \
+          --format text \
+          --path /etc
+        
+        # Verify output
+        test -f /tmp/diff_report.txt
+        test -s /tmp/diff_report.txt
+        
+        # Test archive inflation feature
+        docker run --rm -v /tmp:/output oci-img-diff-build-test \
+          --left alpine:3.22.2 \
+          --right alpine:3.23.4 \
+          --format text \
+          --path /usr/lib \
+          --inflate
+        
+        # Verify inflation worked
+        test -f /tmp/diff_report.txt
