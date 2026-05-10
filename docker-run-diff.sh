@@ -16,7 +16,7 @@ docker build -t "$TOOL_IMAGE" . -q
 echo "🚀 Launching container..."
 
 # We pass "$@" which forwards all flags (-1, -2, -p, -f, -s) 
-# directly to the entrypoint.sh inside the container.
+# directly to the entrypoint inside the container.
 docker run --rm \
   -e DFT_WIDTH=200 \
   -v /tmp \
