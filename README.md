@@ -33,6 +33,7 @@ docker run --rm \
   --path /path/to/diff \
   --format html
 ```
+(add `-v $HOME/.docker/config.json:/root/.docker/config.json:ro` in case the registries need credential)
 
 This will compare the contents of `image1:tag` and `image2:tag` at the `/path/to/diff` directory, and save the output to `/path/to/output/diff_report.html`.
 
