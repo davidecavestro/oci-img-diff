@@ -1,4 +1,4 @@
-.PHONY: test test-unit test-integration test-all clean install-bash-unit
+.PHONY: test test-unit test-integration test-all clean install-bash-unit coverage
 
 # Default test target
 test: test-all
@@ -16,11 +16,9 @@ test-unit: install-bash-unit
 	@echo "Running unit tests..."
 	@./bash_unit test_plugin_system.sh test_with_wrapper.sh test_isolated_final.sh
 
-# Run integration tests (with Docker)
+# Run integration tests (direct script execution for local development)
 test-integration: install-bash-unit
 	@echo "Running integration tests..."
-	@echo "Building test image..."
-	@cd .. && docker build -t oci-img-diff-test . >/dev/null 2>&1
 	@./bash_unit test_integration_direct.sh test_integration_ci.sh
 
 # Run all tests
@@ -45,6 +43,11 @@ clean:
 	@rm -f bash_unit
 	@rm -f *.log
 
+# Coverage collection
+coverage: install-bash-unit
+	@echo "Running tests with coverage..."
+	@./coverage.sh
+
 # Help target
 help:
 	@echo "Available targets:"
@@ -54,6 +57,7 @@ help:
 	@echo "  test-all      - Run all tests (same as test)"
 	@echo "  test-verbose  - Run all tests with verbose output"
 	@echo "  test-file     - Run specific test file (use FILE=filename.sh)"
+	@echo "  coverage      - Run tests with coverage collection"
 	@echo "  install-bash-unit - Install bash_unit testing framework"
 	@echo "  clean         - Clean up test artifacts"
 	@echo "  help          - Show this help message"

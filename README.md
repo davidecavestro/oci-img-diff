@@ -1,7 +1,13 @@
 # oci-img-diff
-`oci-img-diff` is a CLI tool that allows you to compare the contents of two OCI images.
-It generates a report that highlights the differences between the flattened layers of the two images, making it easier to understand what has changed between them.
-If you need a layer-aware comparison instead, check [diffoci](https://github.com/reproducible-containers/diffoci)
+
+![Tests](https://github.com/davidecavestro/oci-img-diff/workflows/Test/badge.svg)
+![Coverage](https://codecov.io/gh/davidecavestro/oci-img-diff/branch/main/graph/badge.svg)
+![Build](https://github.com/davidecavestro/oci-img-diff/workflows/Build%20and%20Publish/badge.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+
+`oci-img-diff` is a CLI tool that allows you to compare the contents of two OCI images. It generates a report that highlights the differences between the two images, making it easier to understand what has changed between them.
+
+If you need a layer-aware comparison, check [diffoci](https://github.com/reproducible-containers/diffoci) instead.
 
 # Features
 This tool allows you to compare two OCI images and generate a report of the differences between them. The report can be saved to a file or printed to stdout.

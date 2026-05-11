@@ -3,7 +3,8 @@
     "build": {
         "dockerfile": "../Dockerfile",
         "target": "dev",
-        "context": ".."
+        "context": "..",
+"name": "oci-img-diff-dev"
     },
     "features": {
         // Use the 'outside' feature to mount the host socket
@@ -33,6 +34,5 @@
             ]
         }
     },
-    // Running as root ensures having permission to access the mounted socket
-    "remoteUser": "root"
+//    "remoteUser": "vscode"
 }

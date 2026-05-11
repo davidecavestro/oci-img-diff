@@ -27,6 +27,9 @@ RUN apt-get update && apt-get install -y \
     procps less default-jdk \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy kcov
+COPY --from=kcov/kcov:latest /usr/local/bin/kcov* /usr/local/bin/
+COPY --from=kcov/kcov:latest /usr/local/share/doc/kcov /usr/local/share/doc/kcov
 
 # final stage
 FROM base
