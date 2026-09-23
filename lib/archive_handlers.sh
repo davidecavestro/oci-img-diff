@@ -73,6 +73,37 @@ execute_archive_handler() {
     return 1
 }
 
+# Pick the registered extension a filename ends with, preferring the longest
+# match so that ".tar.gz" wins over ".gz" regardless of the order given.
+archive_extension_for() {
+    local filename="$1"
+    shift
+    local ext best=""
+
+    for ext in "$@"; do
+        case "$filename" in
+            *"$ext")
+                if [ "${#ext}" -gt "${#best}" ]; then
+                    best="$ext"
+                fi
+                ;;
+        esac
+    done
+
+    printf '%s' "$best"
+}
+
+# Drop the version from an archive filename, keeping any classifier.
+# A version is a hyphen-separated numeric token, optionally followed by an
+# upper-case qualifier:
+#   mylib-1.2.3-RELEASE-extras.jar -> mylib-extras.jar
+#   mylib-1.2.3-extras.jar         -> mylib-extras.jar
+#   mylib-1.2.3-RELEASE.jar        -> mylib.jar
+#   tool.jar                       -> tool.jar
+strip_archive_version() {
+    printf '%s' "$1" | sed -E 's/-[0-9]+(\.[0-9]+)*(-[A-Z][A-Z0-9]*)?//'
+}
+
 # Load custom handlers from plugins directory
 load_plugin_handlers() {
     local plugin_dir="${1:-./plugins}"

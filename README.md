@@ -13,7 +13,7 @@ If you need a layer-aware comparison, check [diffoci](https://github.com/reprodu
 This tool allows you to compare two OCI images and generate a report of the differences between them. The report can be saved to a file or printed to stdout.
 
 - Supports both Docker and Registries
-- Supports multiple output formats: HTML, Text, Smart-HTML, Smart-Text
+- Supports multiple output formats: HTML, Text, Smart-HTML, Smart-Text, Summary
 - Supports printing the output to stdout as well as saving it to a file
 - Supports specifying a specific path within the image to compare
 - Supports both standard diff and difftastic structural diff
@@ -39,6 +39,36 @@ This will compare the contents of `image1:tag` and `image2:tag` at the `/path/to
 
 You can also specify other output formats such as `text`, `smart-html`, and `smart-text`.
 
+## Summary Format
+
+The `summary` format answers "what actually changed?" without reading a full diff. It reports how
+many files were added, removed and changed, lists the affected paths, compares file metadata
+(type, mode, ownership, symlink targets) and diffs the image configuration and build history.
+
+```bash
+docker run --rm \
+  ghcr.io/davidecavestro/oci-img-diff:latest \
+  --left image1:tag \
+  --right image2:tag \
+  --format summary \
+  --stdout
+```
+
+Use `--max-list <n>` to cap how many paths are listed per section (default 200).
+
+Two images built from identical inputs at different times have different digests, because every
+layer tarball records fresh modification times. When the files match, the summary says so
+explicitly instead of leaving the differing digests unexplained:
+
+```
+Verdict
+  No differences under /app.
+
+  The two images carry the same files. Their digests differ because the
+  layer tarballs were produced by separate builds and therefore record
+  different file modification times.
+```
+
 ## Archive Inflation
 
 The tool supports automatic decompression of archive files to enable deeper comparison of container contents. Use the `--inflate` flag to enable:
@@ -51,6 +81,29 @@ docker run --rm \
   --inflate \
   --format text
 ```
+
+### Version-Stripped Directory Names
+
+Archives are inflated into a sibling directory named after the archive, so a version bump renames
+that directory and every file below it reads as removed-and-added rather than changed. Add
+`--strip-version` (which implies `--inflate`) to drop the version from the directory name so the
+same artifact lines up across both images:
+
+```
+mylib-1.2.3-RELEASE-extras.jar_inflated/...   left
+mylib-1.2.4-RELEASE-extras.jar_inflated/...   right
+                   ↓ --strip-version
+mylib-extras.jar_inflated/...                 both
+```
+
+Without the flag, rebuilding a handful of artifacts at higher versions drowns the report in
+add/remove pairs for every file they contain. With it, only the renamed archives themselves are
+reported as added and removed, and the report shows which files inside them actually changed.
+
+A version is recognised as a hyphen-separated numeric token with an optional upper-case qualifier,
+so classifiers are preserved (`mylib-1.2.3-extras.jar` becomes `mylib-extras.jar`) and unversioned
+archives such as `tool.jar` are untouched. If two archives in the same directory reduce to the same
+name, both keep their versioned directory so their contents are never merged.
 
 ### Supported Archive Formats
 By default, the following archive formats are supported:
